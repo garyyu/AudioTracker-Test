@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.os.Build;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -73,7 +74,7 @@ public class MainActivity extends Activity {
 				// create an AudioRecord object
 				AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
 						sr, AudioFormat.CHANNEL_IN_MONO,
-						AudioFormat.ENCODING_PCM_16BIT, 2*buffsize);
+						AudioFormat.ENCODING_PCM_16BIT, buffsize);
 
 				byte  bsamples[] = new byte[buffsize];
 				int i=0,j=0;
@@ -82,6 +83,7 @@ public class MainActivity extends Activity {
 				Log.v(TAG,"Recording Thread::run(): start audioRecord recording.");
 				audioRecord.startRecording();
 
+				int iFrameCnt = 0;
 				try{
 					FileOutputStream TxInFile=new FileOutputStream("/sdcard/txin.pcm");
 
@@ -93,7 +95,8 @@ public class MainActivity extends Activity {
 						}
 
 						TxInFile.write(bsamples);
-						//Log.v(TAG,"Thread::run(): audioTrack.write done");
+						Log.v(TAG,"RecordingThread::run(): audioRecord.read done frame:"+iFrameCnt);
+						iFrameCnt++;
 					}
 
 					TxInFile.close();
@@ -126,7 +129,7 @@ public class MainActivity extends Activity {
 				// create an audiotrack object
 				AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
 						sr, AudioFormat.CHANNEL_OUT_MONO,
-						AudioFormat.ENCODING_PCM_16BIT, 2*buffsize,
+						AudioFormat.ENCODING_PCM_16BIT, buffsize,
 						AudioTrack.MODE_STREAM);
 
 				byte  bsamples[] = new byte[buffsize];
@@ -136,6 +139,7 @@ public class MainActivity extends Activity {
 				Log.v(TAG,"Playing Thread::run(): start audioTrack playing.");
 				audioTrack.play();
 				int silenceFilling = 0;
+				int iFrameCnt = 0;
 
 				try{
 					FileInputStream  RxInFile=new FileInputStream ("/sdcard/rxin.pcm");
@@ -165,7 +169,8 @@ public class MainActivity extends Activity {
 							Log.v(TAG,"Playing Thread::run(): audioTrack.write failure. ret="+byteWriten);
 						}
 						RxInFileLoop.write(bsamples);
-						//Log.v(TAG,"Thread::run(): audioTrack.write done");
+						Log.v(TAG,"PlayingThread::run(): audioTrack.write done frame:"+iFrameCnt);
+						iFrameCnt++;
 					}
 
 					RxInFile.close();
@@ -193,6 +198,10 @@ public class MainActivity extends Activity {
 			getFragmentManager().beginTransaction()
 			.add(R.id.container, new PlaceholderFragment()).commit();
 		}
+		
+        // ------
+        // To check if this can avoid warning message "AUDIO_OUTPUT_FLAG_FAST denied by client due to mismatching sample rate (44100 vs 48000)".
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 	}
 
 	@Override
